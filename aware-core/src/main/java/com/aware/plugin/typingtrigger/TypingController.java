@@ -2,6 +2,8 @@ package com.aware.plugin.typingtrigger;
 
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
+
 import com.aware.Aware;
 
 public class TypingController {
@@ -13,6 +15,7 @@ public class TypingController {
             Intent awareIntent = new Intent(context, Aware.class);
             context.startService(awareIntent);
             isAwareRunning = true;
+            Log.d("TypingController","startAware(): Aware service started");
         }
     }
 
@@ -20,6 +23,7 @@ public class TypingController {
         if (isAwareRunning) {
             context.stopService(new Intent(context, Aware.class));
             isAwareRunning = false;
+            Log.d("TypingController","stopAware(): Aware service stopped");
         }
     }
 
