@@ -7,16 +7,17 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import com.aware.Aware;
+
 public class TypingTriggerReceiver extends BroadcastReceiver {
 
-    private static final long INACTIVITY_TIMEOUT_MS = 10000; // 10 seconds
+    private static final long INACTIVITY_TIMEOUT_MS = 30000; // 60 seconds
     private static final Handler handler = new Handler(Looper.getMainLooper());
 
     private static final Runnable stopAwareRunnable = new Runnable() {
         @Override
         public void run() {
             TypingController.stopAware(contextRef);
-            Log.d("TypingTriggerReceiver","run(): AWARE stopped");
         }
     };
 
@@ -24,6 +25,9 @@ public class TypingTriggerReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        if (intent != null && intent.getAction() != null) {
+            Log.d("TypingTriggerReceiver", "onReceive(): " + intent.getAction());
+        }
         contextRef = context; // keep a reference for handler use
         String action = intent.getAction();
 
@@ -32,7 +36,7 @@ public class TypingTriggerReceiver extends BroadcastReceiver {
             TypingController.stopAware(context);
 
         } else if (Intent.ACTION_SCREEN_ON.equals(action) ||
-                "ACTION_AWARE_KEYBOARD_KEY".equals(action)) {
+                "ACTION_AWARE_KEYBOARD".equals(action)) {
 
             TypingController.startAware(context);
 

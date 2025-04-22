@@ -62,7 +62,7 @@ import android.graphics.Rect;
 public class Applications extends AccessibilityService {
 
     private static String TAG = "AWARE::Applications";
-    private static boolean DEBUG = false;
+    private static boolean DEBUG = true;
 
     public static final String STATUS_AWARE_ACCESSIBILITY = "STATUS_AWARE_ACCESSIBILITY";
 

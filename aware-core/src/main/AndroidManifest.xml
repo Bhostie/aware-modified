@@ -197,6 +197,7 @@
         <!-- My own reveiver for keyboard triggering -->
         <receiver
             android:name=".plugin.typingtrigger.TypingTriggerReceiver"
+            android:enabled="true"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.SCREEN_ON" />
@@ -204,8 +205,11 @@
                 <action android:name="ACTION_AWARE_KEYBOARD_KEY" />
             </intent-filter>
         </receiver>
-        <receiver android:name=".plugin.typingtrigger.BootReceiver"
-            android:exported="true">
+        <receiver
+            android:name=".plugin.typingtrigger.BootReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:directBootAware="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>

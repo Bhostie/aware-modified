@@ -1945,7 +1945,10 @@ public class Aware extends Service {
             unregisterReceiver(awareBoot);
             unregisterReceiver(foregroundMgr);
             unregisterReceiver(schedulerTicker);
-            unregisterComponentCallbacks((ComponentCallbacks) start_BR);
+            //unregisterComponentCallbacks((ComponentCallbacks) start_BR); // Removed since it crashed - Baris
+
+            stopForeground(true);
+            Log.d(TAG,"onDestroy() called, try block run");
         } catch (IllegalArgumentException e) {
             //There is no API to check if a broadcast receiver already is registered. Since Aware.java is shared across plugins, the receiver is only registered on the client, not the plugins.
         }
@@ -2661,10 +2664,14 @@ public class Aware extends Service {
      * @param context
      */
     public static void stopAWARE(Context context) {
+        Log.d(TAG,"stopAWARE() called");
         if (context == null) return;
 
         // Check if the activity is finishing
-        boolean isFinishing = ((Activity) context).isFinishing();
+        boolean isFinishing = false;
+        if (context instanceof Activity) {
+            isFinishing = ((Activity) context).isFinishing();
+        }
 
         Intent aware = new Intent(context, Aware.class);
         context.stopService(aware);
