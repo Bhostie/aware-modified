@@ -11,7 +11,8 @@ import com.aware.Aware;
 
 public class TypingTriggerReceiver extends BroadcastReceiver {
 
-    private static final long INACTIVITY_TIMEOUT_MS = 30000; // 60 seconds
+    private static final long INACTIVITY_TIMEOUT_MS = 30000; // 30 seconds
+    private static final long SCREEN_OFF_TIMEOUT_MS = 5000; // 5 seconds
     private static final Handler handler = new Handler(Looper.getMainLooper());
 
     private static final Runnable stopAwareRunnable = new Runnable() {
@@ -33,7 +34,7 @@ public class TypingTriggerReceiver extends BroadcastReceiver {
 
         if (Intent.ACTION_SCREEN_OFF.equals(action)) {
             handler.removeCallbacks(stopAwareRunnable);
-            TypingController.stopAware(context);
+            handler.postDelayed(stopAwareRunnable, SCREEN_OFF_TIMEOUT_MS);
 
         } else if (Intent.ACTION_SCREEN_ON.equals(action) ||
                 "ACTION_AWARE_KEYBOARD".equals(action)) {
