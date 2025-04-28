@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.aware.plugin.typingtrigger">
+
+    <application>
+        <service
+            android:name=".Typing_Plugin"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.aware.plugin.ACTION_AWARE_PLUGIN"/>
+            </intent-filter>
+            <meta-data
+                android:name="aware.plugin"
+                android:value="typingtrigger"/>
+        </service>
+    </application>
+</manifest>

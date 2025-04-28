@@ -10,7 +10,7 @@ public class BootReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.d("BootReceiver", "BOOT_COMPLETED received");
+      /*  Log.d("BootReceiver", "BOOT_COMPLETED received");
         Log.d("AWARE::BootReceiver", "BootReceiver:onReceive() run");
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_SCREEN_ON);
@@ -19,5 +19,7 @@ public class BootReceiver extends BroadcastReceiver {
 
         context.getApplicationContext()
                 .registerReceiver(new TypingTriggerReceiver(), filter);
+
+       */
     }
 }

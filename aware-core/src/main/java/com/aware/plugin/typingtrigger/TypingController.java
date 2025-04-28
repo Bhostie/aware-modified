@@ -7,9 +7,7 @@ import android.util.Log;
 import com.aware.Aware;
 
 public class TypingController {
-
     private static boolean isAwareRunning = false;
-
     public static void startAware(Context context) {
         if (!isAwareRunning) {
             Intent awareIntent = new Intent(context, Aware.class);
@@ -19,17 +17,14 @@ public class TypingController {
             Log.d("TypingController","startAware(): Aware service started");
         }
     }
-
     public static void stopAware(Context context) {
         if (isAwareRunning) {
             Log.d("TypingController","TypingController:stopAware() called");
             context.stopService(new Intent(context, Aware.class));
             Aware.stopAWARE(context);
             isAwareRunning = false;
-
         }
     }
-
     public static boolean isRunning() {
         return isAwareRunning;
     }
