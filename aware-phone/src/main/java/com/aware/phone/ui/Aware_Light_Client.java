@@ -425,6 +425,7 @@ public class Aware_Light_Client extends Aware_Activity {
                     findPreference(Aware_Preferences.STATUS_GYROSCOPE),
                     findPreference(Aware_Preferences.STATUS_INSTALLATIONS),
                     findPreference(Aware_Preferences.STATUS_KEYBOARD),
+                    findPreference(Aware_Preferences.STATUS_KEYBOARD_TRIGGER),
                     findPreference(Aware_Preferences.STATUS_SCREENTEXT),
                     findPreference(Aware_Preferences.STATUS_LIGHT),
                     findPreference(Aware_Preferences.STATUS_LINEAR_ACCELEROMETER),

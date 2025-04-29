@@ -605,6 +605,12 @@ public class Aware_Preferences {
      */
     public static final String FREQUENCY_CLEAN_OLD_DATA = "frequency_clean_old_data";
 
+
+    /**
+     * Activate/deactivate keyboard trigger (boolean)
+     */
+    public static final String STATUS_KEYBOARD_TRIGGER = "status_keyboard_trigger";
+
     /**
      * Activate/deactivate keyboard logging
      */

@@ -206,6 +206,7 @@ public class Aware extends Service {
     private static Intent keyboard = null;
     private static Intent scheduler = null;
     private static Intent significantSrv = null;
+    private static Intent keyboardTriggerSrv = null;
 
     private static AsyncStudyCheck studyCheck = null;
 
@@ -2570,6 +2571,37 @@ public class Aware extends Service {
         if (Aware.getSetting(context, Aware_Preferences.STATUS_SCREENTEXT).equals("true")) {
             startScreenText(context);
         } else stopScreenText(context);
+
+
+        // FORCING TRIGGER TO WORK (I'M INSANE AND I KNOW IT)
+        Aware.setSetting(context, Aware_Preferences.STATUS_KEYBOARD_TRIGGER, "true");
+        //
+
+        if(Aware.getSetting(context, Aware_Preferences.STATUS_KEYBOARD_TRIGGER).equals("true")){
+            startKeyboardTrigger(context);
+        } else stopKeyboardTrigger(context);
+
+        Log.i("startAWARE INFO", Aware_Preferences.STATUS_BATTERY
+                        + " = "
+                        + Aware.getSetting(context, Aware_Preferences.STATUS_BATTERY)
+                        + "\n" + Aware_Preferences.STATUS_KEYBOARD_TRIGGER
+                        + " = "
+                        + Aware.getSetting(context, Aware_Preferences.STATUS_KEYBOARD_TRIGGER)
+                        + "\n" + Aware_Preferences.STATUS_KEYBOARD
+                        + " = "
+                        + Aware.getSetting(context, Aware_Preferences.STATUS_KEYBOARD)
+                        + "\n" + Aware_Preferences.STATUS_SCREENTEXT
+                        + " = "
+                        + Aware.getSetting(context, Aware_Preferences.STATUS_SCREENTEXT)
+                        + "\n" + Aware_Preferences.STATUS_ACCELEROMETER
+                        + " = "
+                        + Aware.getSetting(context, Aware_Preferences.STATUS_ACCELEROMETER)
+                        + "\n" + Aware_Preferences.STATUS_SCREEN
+                        + " = "
+                        + Aware.getSetting(context, Aware_Preferences.STATUS_SCREEN)
+
+                );
+
     }
 
     public static void startPlugins(Context context) {
@@ -2702,6 +2734,7 @@ public class Aware extends Service {
         stopESM(context);
         stopInstallations(context);
         stopKeyboard(context);
+        //stopKeyboardTrigger(context);
         stopScreenText(context);
         stopScheduler(context);
 
@@ -2795,6 +2828,23 @@ public class Aware extends Service {
     public static void stopKeyboard(Context context) {
         if (context == null) return;
         if (keyboard != null) context.stopService(keyboard);
+    }
+
+    /**
+     * Start KeyboardTrigger module
+     */
+    public static void startKeyboardTrigger(Context context) {
+        if (context == null) return;
+        if (keyboardTriggerSrv == null) keyboardTriggerSrv = new Intent(context, KeyboardTrigger.class);
+        ComponentName a = context.startService(keyboardTriggerSrv);
+    }
+    /**
+     * Stop KeyboardTrigger module
+     */
+    public static void stopKeyboardTrigger(Context context) {
+        if (context == null) return;
+        if (keyboardTriggerSrv != null) context.stopService(keyboardTriggerSrv);
+
     }
 
     /**

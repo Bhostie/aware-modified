@@ -1,19 +1,18 @@
+// top of file, no blank lines before this
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 34
-
+    compileSdkVersion 34          // or rootProject.ext.compile_sdk if you prefer to share the version
     defaultConfig {
         minSdkVersion 22
-
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
     }
-
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
+                    'proguard-rules.pro'
         }
     }
     compileOptions {
@@ -23,11 +22,5 @@ android {
 }
 
 dependencies {
-
     implementation project(':aware-core')
-    implementation 'androidx.appcompat:appcompat:1.7.0'
-    implementation 'com.google.android.material:material:1.12.0'
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 }
