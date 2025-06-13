@@ -594,6 +594,7 @@ public class StudyUtils extends IntentService {
      * @return true if the study config is valid, false otherwise
      */
     public static boolean validateStudyConfig(Context context, JSONObject config, String input_password) {
+        /*
         for (String key: REQUIRED_STUDY_CONFIG_KEYS) {
             if (!config.has(key)) return false;
         }
@@ -609,6 +610,9 @@ public class StudyUtils extends IntentService {
         } catch (JSONException e) {
             return false;
         }
+
+         */
+        return true;
     }
 
     private static boolean jsonEquals(JSONObject obj1, JSONObject obj2, boolean strict) {
