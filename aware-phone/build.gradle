@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
-
-apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+
 
 android {
     compileSdkVersion compile_sdk
@@ -119,8 +119,6 @@ dependencies {
     implementation "com.google.android.material:material:1.1.0-alpha09"
     implementation "androidx.appcompat:appcompat:1.0.2"
 
-    implementation project(':typingtrigger-plugin')
-    api(project(":typingtrigger-plugin"))
     api(project(':aware-core'))
     api(project(":com.aware.plugin.ambient_noise"))
     api(project(":com.aware.plugin.device_usage"))
