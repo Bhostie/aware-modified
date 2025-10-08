@@ -171,7 +171,7 @@ public class Keyboard_Provider extends ContentProvider {
         sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
         sUriMatcher.addURI(Keyboard_Provider.AUTHORITY,
                 DATABASE_TABLES[0], KEYBOARD);
-        sUriMatcher.addURI(Installations_Provider.AUTHORITY, DATABASE_TABLES[0]
+        sUriMatcher.addURI(Keyboard_Provider.AUTHORITY, DATABASE_TABLES[0]
                 + "/#", KEYBOARD_ID);
 
         dataMap = new HashMap<String, String>();
@@ -188,6 +188,14 @@ public class Keyboard_Provider extends ContentProvider {
                 Keyboard_Data.CURRENT_TEXT);
         dataMap.put(Keyboard_Data.IS_PASSWORD,
                 Keyboard_Data.IS_PASSWORD);
+
+        // FIX: Proactively initialize database to ensure keyboard.db is created
+        try {
+            initialiseDatabase();
+        } catch (Exception e) {
+            if (Aware.DEBUG)
+                Log.e(Aware.TAG, "Failed to initialize keyboard database: " + e.getMessage());
+        }
 
         return true;
     }

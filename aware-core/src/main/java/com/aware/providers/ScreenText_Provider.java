@@ -120,6 +120,14 @@ public class ScreenText_Provider extends ContentProvider {
         screenTextMap.put(ScreenTextData.USER_ACTION, ScreenTextData.USER_ACTION);
         screenTextMap.put(ScreenTextData.EVENT_TYPE, ScreenTextData.EVENT_TYPE);
 
+        // FIX: Proactively initialize database
+        try {
+            initialiseDatabase();
+        } catch (Exception e) {
+            if (Aware.DEBUG)
+                Log.e(Aware.TAG, "Failed to initialize screentext database: " + e.getMessage());
+        }
+
         return true;
     }
 
@@ -236,5 +244,46 @@ public class ScreenText_Provider extends ContentProvider {
 
         getContext().getContentResolver().notifyChange(uri, null, false);
         return count;
+    }
+
+    /**
+     * FIX: Implement bulkInsert for better performance
+     * Batch inserts in a single transaction instead of individual transactions
+     */
+    @Override
+    public int bulkInsert(Uri uri, ContentValues[] values) {
+        initialiseDatabase();
+
+        int numInserted = 0;
+
+        switch (sUriMatcher.match(uri)) {
+            case SCREEN_TEXT:
+                database.beginTransaction();
+                try {
+                    for (ContentValues cv : values) {
+                        long id = database.insertWithOnConflict(
+                                DATABASE_TABLES[0],
+                                ScreenTextData.DEVICE_ID,
+                                cv,
+                                SQLiteDatabase.CONFLICT_IGNORE
+                        );
+                        if (id > 0) {
+                            numInserted++;
+                        }
+                    }
+                    database.setTransactionSuccessful();
+                } finally {
+                    database.endTransaction();
+                }
+
+                if (numInserted > 0) {
+                    getContext().getContentResolver().notifyChange(uri, null, false);
+                }
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown URI " + uri);
+        }
+
+        return numInserted;
     }
 }

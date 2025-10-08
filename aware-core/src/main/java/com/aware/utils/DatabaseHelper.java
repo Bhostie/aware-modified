@@ -1,4 +1,3 @@
-
 package com.aware.utils;
 
 import android.content.Context;
@@ -175,7 +174,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }
 
             database = getDatabaseFile();
-            if (database == null) return null;
+            if (database == null) {
+                // FIX: Log the error and throw exception instead of returning null
+                Log.e(TAG, "Failed to get database file for: " + databaseName);
+                throw new SQLiteException("Unable to open database: " + databaseName);
+            }
 
             int current_version = database.getVersion();
             if (current_version != newVersion) {
@@ -193,7 +196,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }
             return database;
         } catch (Exception e) {
-            return null;
+            // FIX: Log the error properly and rethrow
+            Log.e(TAG, "Error getting writable database: " + databaseName, e);
+            if (e instanceof SQLiteException) {
+                throw (SQLiteException) e;
+            }
+            throw new SQLiteException("Failed to get writable database", e);
         }
     }
 
@@ -206,9 +214,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 }
             }
             database = getDatabaseFile();
+            if (database == null) {
+                // FIX: Log the error and throw exception instead of returning null
+                Log.e(TAG, "Failed to get database file for: " + databaseName);
+                throw new SQLiteException("Unable to open database: " + databaseName);
+            }
             return database;
         } catch (Exception e) {
-            return null;
+            // FIX: Log the error properly and rethrow
+            Log.e(TAG, "Error getting readable database: " + databaseName, e);
+            if (e instanceof SQLiteException) {
+                throw (SQLiteException) e;
+            }
+            throw new SQLiteException("Failed to get readable database", e);
         }
     }
 
@@ -219,12 +237,43 @@ public class DatabaseHelper extends SQLiteOpenHelper {
      */
     private synchronized SQLiteDatabase getDatabaseFile() {
         try {
-            File aware_folder;
+            File aware_folder = null;
 
-            // TESTING
-            // My purpose is to create the log files in Documents dir, so it will be accessible
-            aware_folder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "AWARE");
+            // Check if we have permission to write to external storage
+            boolean hasExternalStoragePermission = false;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                hasExternalStoragePermission = ContextCompat.checkSelfPermission(mContext,
+                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED;
+            } else {
+                hasExternalStoragePermission = true; // Pre-M devices don't need runtime permissions
+            }
 
+            // Try to use external storage if we have permission, otherwise use internal storage
+            if (hasExternalStoragePermission) {
+                try {
+                    // TESTING
+                    // My purpose is to create the log files in Documents dir, so it will be accessible
+                    aware_folder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "AWARE");
+
+                    // Test if we can actually create the directory
+                    if (!aware_folder.exists()) {
+                        boolean created = aware_folder.mkdirs();
+                        if (!created && !aware_folder.exists()) {
+                            Log.w(TAG, "Could not create external storage directory, falling back to internal storage");
+                            throw new Exception("External storage not accessible");
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.w(TAG, "External storage not accessible, using internal storage: " + e.getMessage());
+                    hasExternalStoragePermission = false;
+                }
+            }
+
+            if (!hasExternalStoragePermission) {
+                // Fallback to internal storage
+                aware_folder = new File(mContext.getFilesDir(), "AWARE");
+                Log.i(TAG, "Using internal storage for database: " + aware_folder.getAbsolutePath());
+            }
 
            /* if (mContext.getResources().getBoolean(R.bool.internalstorage)) {
                 // Internal storage.  This is not acceassible to any other apps and is removed once
@@ -244,13 +293,46 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             } */
 
             if (!aware_folder.exists()) {
-                aware_folder.mkdirs();
+                boolean created = aware_folder.mkdirs();
+                if (!created && !aware_folder.exists()) {
+                    // FIX: Log error if folder creation fails
+                    Log.e(TAG, "Failed to create database directory: " + aware_folder.getAbsolutePath());
+                    throw new SQLiteException("Cannot create database directory: " + aware_folder.getAbsolutePath());
+                }
             }
 
-            database = SQLiteDatabase.openOrCreateDatabase(new File(aware_folder, this.databaseName).getPath(), this.cursorFactory);
+            File dbFile = new File(aware_folder, this.databaseName);
+            if (DEBUG) Log.d(TAG, "Opening database: " + dbFile.getAbsolutePath());
+
+            database = SQLiteDatabase.openOrCreateDatabase(dbFile.getPath(), this.cursorFactory);
+
+            // FIX: Enable WAL mode for better concurrency and performance
+            // WAL allows concurrent reads while writing, significantly improving performance
+            if (database != null && database.isOpen()) {
+                try {
+                    // enableWriteAheadLogging() handles WAL mode internally
+                    boolean walEnabled = database.enableWriteAheadLogging();
+                    if (DEBUG) Log.d(TAG, "WAL mode enabled: " + walEnabled + " for " + databaseName);
+
+                    // Set synchronous mode to NORMAL for better performance
+                    // Use rawQuery instead of execSQL for PRAGMA statements
+                    Cursor cursor = database.rawQuery("PRAGMA synchronous=NORMAL", null);
+                    if (cursor != null) cursor.close();
+                } catch (Exception e) {
+                    // WAL mode might not be supported on all devices, log but don't fail
+                    if (DEBUG) Log.w(TAG, "Could not enable WAL mode for " + databaseName + ": " + e.getMessage());
+                }
+            }
+
             return database;
         } catch (SQLiteException e) {
-            return null;
+            // FIX: Log and rethrow instead of returning null
+            Log.e(TAG, "SQLiteException opening database: " + databaseName, e);
+            throw e;
+        } catch (Exception e) {
+            // FIX: Log and throw wrapped exception instead of returning null
+            Log.e(TAG, "Exception opening database: " + databaseName, e);
+            throw new SQLiteException("Failed to open database: " + databaseName, e);
         }
     }
 

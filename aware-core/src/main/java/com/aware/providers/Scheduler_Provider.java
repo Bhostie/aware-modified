@@ -1,4 +1,3 @@
-
 package com.aware.providers;
 
 import android.content.ContentProvider;
@@ -172,6 +171,14 @@ public class Scheduler_Provider extends ContentProvider {
         dataMap.put(Scheduler_Data.SCHEDULE, Scheduler_Data.SCHEDULE);
         dataMap.put(Scheduler_Data.LAST_TRIGGERED, Scheduler_Data.LAST_TRIGGERED);
         dataMap.put(Scheduler_Data.PACKAGE_NAME, Scheduler_Data.PACKAGE_NAME);
+
+        // FIX: Proactively initialize database to prevent NullPointerException
+        try {
+            initialiseDatabase();
+        } catch (Exception e) {
+            if (Aware.DEBUG)
+                Log.e(Aware.TAG, "Failed to initialize scheduler database: " + e.getMessage());
+        }
 
         return true;
     }

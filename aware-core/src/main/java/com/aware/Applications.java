@@ -1,4 +1,3 @@
-
 package com.aware;
 
 import android.accessibilityservice.AccessibilityService;
@@ -17,6 +16,8 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteException;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
@@ -46,6 +47,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import android.graphics.Rect;
 
@@ -101,14 +103,80 @@ public class Applications extends AccessibilityService {
 
     Set<Integer> textBuffer = new HashSet<>();
 
-    int TEXT_BUFFER_LIMIT = 100;
+    // FIX: Reduced buffer size from 100 to 20 for more frequent, smaller flushes
+    int TEXT_BUFFER_LIMIT = 20;
 
     private String previousForegroundApp = "";
 
     private static List<Integer> sensitiveInputType = Arrays.asList(129, 225, 145);
-//    int mDebugDepth = 0;
 
     private static int screenStatus = 0; //  ACTION_AWARE_SCREEN_OFF ACTION_AWARE_SCREEN_UNLOCKED
+
+    // FIX: Background thread for heavy operations
+    private Handler backgroundHandler;
+    private HandlerThread backgroundThread;
+
+    // FIX: Settings cache to avoid repeated disk I/O
+    private final SettingsCache settingsCache = new SettingsCache();
+
+    /**
+     * FIX: Settings cache class to avoid repeated disk reads
+     */
+    private class SettingsCache {
+        private final ConcurrentHashMap<String, String> cache = new ConcurrentHashMap<>();
+        private long lastUpdateTime = 0;
+        private final long CACHE_TTL = 30000; // 30 seconds
+
+        public String getSetting(String key, String defaultValue) {
+            // Refresh cache if expired
+            if (System.currentTimeMillis() - lastUpdateTime > CACHE_TTL) {
+                refreshCache();
+            }
+            return cache.getOrDefault(key, defaultValue);
+        }
+
+        public boolean getSettingBoolean(String key) {
+            return "true".equals(getSetting(key, "false"));
+        }
+
+        private void refreshCache() {
+            try {
+                // Cache frequently accessed settings
+                cache.put(Aware_Preferences.STATUS_KEYBOARD,
+                    Aware.getSetting(getApplicationContext(), Aware_Preferences.STATUS_KEYBOARD));
+                cache.put(Aware_Preferences.STATUS_SCREENTEXT,
+                    Aware.getSetting(getApplicationContext(), Aware_Preferences.STATUS_SCREENTEXT));
+                cache.put(Aware_Preferences.STATUS_NOTIFICATIONS,
+                    Aware.getSetting(getApplicationContext(), Aware_Preferences.STATUS_NOTIFICATIONS));
+                cache.put(Aware_Preferences.STATUS_APPLICATIONS,
+                    Aware.getSetting(getApplicationContext(), Aware_Preferences.STATUS_APPLICATIONS));
+                cache.put(Aware_Preferences.STATUS_TOUCH,
+                    Aware.getSetting(getApplicationContext(), Aware_Preferences.STATUS_TOUCH));
+                cache.put(Aware_Preferences.STATUS_CRASHES,
+                    Aware.getSetting(getApplicationContext(), Aware_Preferences.STATUS_CRASHES));
+                cache.put(Aware_Preferences.MASK_KEYBOARD,
+                    Aware.getSetting(getApplicationContext(), Aware_Preferences.MASK_KEYBOARD));
+                cache.put(Aware_Preferences.MASK_NOTIFICATION_TEXT,
+                    Aware.getSetting(getApplicationContext(), Aware_Preferences.MASK_NOTIFICATION_TEXT));
+                cache.put(Aware_Preferences.MASK_TOUCH_TEXT,
+                    Aware.getSetting(getApplicationContext(), Aware_Preferences.MASK_TOUCH_TEXT));
+                cache.put(Aware_Preferences.PACKAGE_SPECIFICATION,
+                    Aware.getSetting(getApplicationContext(), Aware_Preferences.PACKAGE_SPECIFICATION));
+                cache.put(Aware_Preferences.PACKAGE_NAMES,
+                    Aware.getSetting(getApplicationContext(), Aware_Preferences.PACKAGE_NAMES));
+                cache.put(Aware_Preferences.DEVICE_ID,
+                    Aware.getSetting(getApplicationContext(), Aware_Preferences.DEVICE_ID));
+
+                lastUpdateTime = System.currentTimeMillis();
+            } catch (Exception e) {
+                Log.e(TAG, "Error refreshing settings cache: " + e.getMessage());
+            }
+        }
+
+        public void invalidate() {
+            lastUpdateTime = 0;
+        }
+    }
 
 
     public static void setScreenStatus(int status){
@@ -120,36 +188,37 @@ public class Applications extends AccessibilityService {
     }
 
     /**
+     * FIX: Optimized recursive text tree traversal using StringBuilder
      * Recursively track all the text on the screen in a tree structure to the text variable
      *
      * @param mNodeInfo
+     * @param builder
      */
-    private void textTree(AccessibilityNodeInfo mNodeInfo){
+    private void textTree(AccessibilityNodeInfo mNodeInfo, StringBuilder builder){
         if (mNodeInfo == null) return;
 
         // conditions to filter the meaningless input
         if (mNodeInfo.getText() != null && !mNodeInfo.getText().toString().equals("")){
             Rect rect = new Rect();
-            // check is password, check inputtype is (129, )
             String viewId = mNodeInfo.getViewIdResourceName();
-
 
             if (!mNodeInfo.isPassword()  && !sensitiveInputType.contains(mNodeInfo.getInputType())){
                 if ((viewId != null && !viewId.matches("(?i).*password.*")) | viewId == null){
                     mNodeInfo.getBoundsInScreen(rect);
-
-                    currScreenText += mNodeInfo.getText() + "***" + rect.toString() + "||"; // Add division sign for the tree
+                    // Use StringBuilder instead of string concatenation
+                    builder.append(mNodeInfo.getText())
+                           .append("***")
+                           .append(rect.toString())
+                           .append("||");
                 }
             }
         }
 
         if (mNodeInfo.getChildCount() < 1) return;
-//        mDebugDepth++;
 
         for (int i = 0; i < mNodeInfo.getChildCount(); i++) {
-            textTree(mNodeInfo.getChild(i));
+            textTree(mNodeInfo.getChild(i), builder);
         }
-//        mDebugDepth--;
     }
 
     /**
@@ -238,7 +307,10 @@ public class Applications extends AccessibilityService {
 
             // Get text tree
             AccessibilityNodeInfo mNodeInfo = event.getSource();
-            textTree(mNodeInfo);
+            // FIX: Use StringBuilder for efficient text concatenation
+            StringBuilder textBuilder = new StringBuilder();
+            textTree(mNodeInfo, textBuilder);
+            currScreenText = textBuilder.toString();
 
             if (!currScreenText.isEmpty() && track_screentext && !event.isPassword()) {
                 ContentValues screenText = new ContentValues();

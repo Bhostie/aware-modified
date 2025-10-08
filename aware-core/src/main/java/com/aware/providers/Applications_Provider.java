@@ -1,4 +1,3 @@
-
 package com.aware.providers;
 
 import android.content.ContentProvider;
@@ -433,6 +432,14 @@ public class Applications_Provider extends ContentProvider {
                 Applications_Crashes.ERROR_CONDITION);
         crashesMap.put(Applications_Crashes.IS_SYSTEM_APP,
                 Applications_Crashes.IS_SYSTEM_APP);
+
+        // FIX: Proactively initialize database to prevent NullPointerException
+        try {
+            initialiseDatabase();
+        } catch (Exception e) {
+            if (Aware.DEBUG)
+                Log.e(Aware.TAG, "Failed to initialize applications database: " + e.getMessage());
+        }
 
         return true;
     }

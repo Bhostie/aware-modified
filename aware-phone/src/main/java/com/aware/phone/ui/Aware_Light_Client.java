@@ -77,6 +77,9 @@ public class Aware_Light_Client extends Aware_Activity {
 
     private final Aware.AndroidPackageMonitor packageMonitor = new Aware.AndroidPackageMonitor();
 
+    // NEW: track if preferences were already loaded (after permissions)
+    private boolean preferencesLoaded = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,11 +88,13 @@ public class Aware_Light_Client extends Aware_Activity {
 
         // Initialize views
         setContentView(R.layout.activity_aware_light);
-        if (Aware.isStudy(getApplicationContext())) {
-            addPreferencesFromResource(R.xml.pref_aware_light);
-        } else {
-            addPreferencesFromResource(R.xml.pref_aware_device);
-        }
+
+        // Removed early Aware.isStudy() call to avoid DB access before permissions
+        // if (Aware.isStudy(getApplicationContext())) {
+        //     addPreferencesFromResource(R.xml.pref_aware_light);
+        // } else {
+        //     addPreferencesFromResource(R.xml.pref_aware_device);
+        // }
 //        hideUnusedPreferences();
 
         // Initialize and check optional sensors and required permissions before starting AWARE service
@@ -359,6 +364,22 @@ public class Aware_Light_Client extends Aware_Activity {
             startActivity(permissionsHandler);
 
         } else {
+
+            // Load preferences only once after permissions are granted
+            if (!preferencesLoaded) {
+                try {
+                    if (Aware.isStudy(getApplicationContext())) {
+                        addPreferencesFromResource(R.xml.pref_aware_light);
+                    } else {
+                        addPreferencesFromResource(R.xml.pref_aware_device);
+                    }
+                } catch (Exception e) {
+                    // Fallback if DB still not ready
+                    addPreferencesFromResource(R.xml.pref_aware_device);
+                    Log.e(TAG, "Deferred study check failed, loaded device prefs. " + e.getMessage());
+                }
+                preferencesLoaded = true;
+            }
 
             if (prefs.getAll().isEmpty() && Aware.getSetting(getApplicationContext(), Aware_Preferences.DEVICE_ID).length() == 0) {
                 PreferenceManager.setDefaultValues(getApplicationContext(), "com.aware.phone", Context.MODE_PRIVATE, R.xml.aware_preferences, true);

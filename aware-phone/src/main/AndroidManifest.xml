@@ -3,6 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.aware.phone">
 
+    <!-- Added explicit read external storage permission so runtime request works on devices requiring it -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
     <application
         tools:replace="android:networkSecurityConfig"
         android:icon="@drawable/ic_launcher_aware"
