@@ -44,7 +44,7 @@ public class KeyboardTrigger extends Aware_Sensor {
                 IntentFilter filter = new IntentFilter();
                 filter.addAction(Intent.ACTION_SCREEN_OFF);
                 filter.addAction(Intent.ACTION_SCREEN_ON);
-                filter.addAction("ACTION_AWARE_KEYBOARD");
+                filter.addAction(Keyboard.ACTION_AWARE_KEYBOARD);
                 registerReceiver(typingTriggerReceiver, filter);
 
 
@@ -66,6 +66,8 @@ public class KeyboardTrigger extends Aware_Sensor {
         super.onDestroy();
 
         if (typingTriggerReceiver != null) {
+            // Clear any pending callbacks to avoid delayed stop after destroy
+            typingTriggerReceiver.clearCallbacks();
             unregisterReceiver(typingTriggerReceiver);
             typingTriggerReceiver = null;
             if (Aware.DEBUG) Log.d(TAG, "TypingTriggerReceiver unregistered.");
@@ -78,55 +80,6 @@ public class KeyboardTrigger extends Aware_Sensor {
         }
 
         if (Aware.DEBUG) Log.d(TAG, "KeyboardTrigger destroyed.");
-    }
-
-    private void setupKeyboardDetector() {
-        windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-
-        if (keyboardDetectionView == null) {
-            keyboardDetectionView = new FrameLayout(this);
-
-            WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                    0, 0,
-                    WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                    android.graphics.PixelFormat.TRANSLUCENT
-            );
-
-            try {
-                windowManager.addView(keyboardDetectionView, params);
-
-                keyboardDetectionView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-                    @Override
-                    public void onGlobalLayout() {
-                        Rect r = new Rect();
-                        keyboardDetectionView.getWindowVisibleDisplayFrame(r);
-                        int screenHeight = keyboardDetectionView.getRootView().getHeight();
-                        int keypadHeight = screenHeight - r.bottom;
-
-                        boolean isKeyboardOpen = keypadHeight > screenHeight * 0.15; // 15% of screen
-
-                        if (isKeyboardOpen && !wasKeyboardOpen) {
-                            wasKeyboardOpen = true;
-                            if (Aware.DEBUG) Log.d(TAG, "Keyboard detected as opened.");
-
-                            // Broadcast ACTION_AWARE_KEYBOARD
-                            Intent keyboardIntent = new Intent("ACTION_AWARE_KEYBOARD");
-                            sendBroadcast(keyboardIntent);
-
-                        } else if (!isKeyboardOpen && wasKeyboardOpen) {
-                            wasKeyboardOpen = false;
-                            if (Aware.DEBUG) Log.d(TAG, "Keyboard detected as closed.");
-                            // Optional: can do something on keyboard close
-                        }
-                    }
-                });
-
-                if (Aware.DEBUG) Log.d(TAG, "Keyboard detection view set up.");
-            } catch (Exception e) {
-                Log.e(TAG, "Failed to add keyboard detection view: " + e.getMessage());
-            }
-        }
     }
 
     @Override

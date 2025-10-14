@@ -3,7 +3,6 @@
     package="com.aware">
 
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="com.aware.READ_CONTEXT_DATA" />
     <uses-permission android:name="com.aware.WRITE_CONTEXT_DATA" />
@@ -199,26 +198,8 @@
             </intent-filter>
         </receiver>
 
-        <!-- My own reveiver for keyboard triggering -->
-        <receiver
-            android:name=".plugin.typingtrigger.TypingTriggerReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.SCREEN_ON" />
-                <action android:name="android.intent.action.SCREEN_OFF" />
-                <action android:name="ACTION_AWARE_KEYBOARD" />
-            </intent-filter>
-        </receiver>
-        <receiver
-            android:name=".plugin.typingtrigger.BootReceiver"
-            android:enabled="true"
-            android:exported="true"
-            android:directBootAware="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
+        <!-- Removed static TypingTriggerReceiver. It is registered dynamically by KeyboardTrigger service. -->
+
 
 
         <!-- Core providers -->
