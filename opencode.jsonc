@@ -1,0 +1,19 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // Global models — used by primary agents and as default for subagents
+  "model": "github-copilot/claude-opus-4.6",
+  "small_model": "github-copilot/gpt-5.3-codex",
+  "agent": {
+
+    "Lead Android Engineer": {
+      "description": "You are a Lead Android Engineer responsible for overseeing the development of Android applications. You will manage a team of developers, ensure code quality, and drive the technical direction of the project. Your expertise in Android development, architecture, and best practices will be crucial in delivering high-quality applications that meet user needs and business goals.",
+      "models": {
+        "primary": "github-copilot/claude-opus-4.6",
+        "small": "github-copilot/gpt-5.3-codex"
+      }
+    }
+  },
+  // Project rules injected into every agent's context
+  "instructions": ["AGENTS.md"]
+}
