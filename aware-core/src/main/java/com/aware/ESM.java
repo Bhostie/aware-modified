@@ -486,18 +486,26 @@ public class ESM extends Aware_Sensor {
         @Override
         protected Void doInBackground(Void... params) {
             if (mRetries == 0) {
-                while ((System.currentTimeMillis() - display_timestamp) / 1000 <= expires_in_seconds) {
-                    if (isCancelled()) {
-                        return null;
+                long remainingMs = (expires_in_seconds * 1000L) - (System.currentTimeMillis() - display_timestamp);
+                if (remainingMs > 0) {
+                    try {
+                        Thread.sleep(remainingMs);
+                    } catch (InterruptedException e) {
+                        if (Aware.DEBUG) Log.w(TAG, "ESM timeout interrupted", e);
                     }
                 }
+                if (isCancelled()) return null;
             } else {
                 while (mRetries > 0) {
-                    while ((System.currentTimeMillis() - display_timestamp) / 1000 <= expires_in_seconds) {
-                        if (isCancelled()) {
-                            return null;
+                    long remainingMs = (expires_in_seconds * 1000L) - (System.currentTimeMillis() - display_timestamp);
+                    if (remainingMs > 0) {
+                        try {
+                            Thread.sleep(remainingMs);
+                        } catch (InterruptedException e) {
+                            if (Aware.DEBUG) Log.w(TAG, "ESM timeout interrupted", e);
                         }
                     }
+                    if (isCancelled()) return null;
                     mRetries--;
                     display_timestamp = System.currentTimeMillis(); //move forward time and try again
                     if (Aware.DEBUG) Log.d(TAG, "Retrying ESM: " + mRetries);

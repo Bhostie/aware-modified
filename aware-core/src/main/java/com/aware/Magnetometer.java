@@ -137,7 +137,7 @@ public class Magnetometer extends Aware_Sensor implements SensorEventListener {
                         Intent newData = new Intent(ACTION_AWARE_MAGNETOMETER);
                         sendBroadcast(newData);
                     }
-                }).run();
+                }).start();
             }
         } catch (SQLiteException e) {
             if (Aware.DEBUG) Log.d(TAG, e.getMessage());

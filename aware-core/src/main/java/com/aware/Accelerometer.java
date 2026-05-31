@@ -95,7 +95,7 @@ public class Accelerometer extends Aware_Sensor implements SensorEventListener {
                                 Intent accelData = new Intent(ACTION_AWARE_ACCELEROMETER);
                                 sendBroadcast(accelData);
                             }
-                        }).run();
+                        }).start();
                     }
                 } catch (SQLiteException e) {
                     if (Aware.DEBUG) Log.d(TAG, e.getMessage());
@@ -148,7 +148,7 @@ public class Accelerometer extends Aware_Sensor implements SensorEventListener {
                         Intent accelData = new Intent(ACTION_AWARE_ACCELEROMETER);
                         sendBroadcast(accelData);
                     }
-                }).run();
+                }).start();
             }
         } catch (SQLiteException e) {
             if (Aware.DEBUG) Log.d(TAG, e.getMessage());

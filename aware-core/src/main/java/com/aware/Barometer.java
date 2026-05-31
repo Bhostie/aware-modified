@@ -120,7 +120,7 @@ public class Barometer extends Aware_Sensor implements SensorEventListener {
                         Intent accelData = new Intent(ACTION_AWARE_BAROMETER);
                         sendBroadcast(accelData);
                     }
-                }).run();
+                }).start();
             }
         } catch (SQLiteException e) {
             if (Aware.DEBUG) Log.d(TAG, e.getMessage());

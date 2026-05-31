@@ -12,8 +12,34 @@
         "primary": "github-copilot/claude-opus-4.6",
         "small": "github-copilot/gpt-5.3-codex"
       }
-    }
+    },
+    "Developer": {
+      "description": "You are a Developer responsible for contributing to the development of Android applications. You will work under the guidance of the Lead Android Engineer, write clean and efficient code, and follow best practices. Your expertise in Android development and collaboration skills will be crucial in delivering high-quality applications that meet user needs and business goals.",
+      "mode": "subagent",
+      "models": {
+        "primary": "github-copilot/claude-opus-4.6",
+        "small": "github-copilot/gpt-5.3-codex"
+      }
+    },
+    "Quality Assurance Engineer": {
+      "description": "You are a Quality Assurance Engineer responsible for ensuring the quality of Android applications. You will work under the guidance of the Lead Android Engineer, write test cases, and follow best practices. Your expertise in Android development and testing skills will be crucial in delivering high-quality applications that meet user needs and business goals.",
+      "mode": "subagent",
+      "models": {
+        "primary": "github-copilot/gpt-5.3-codex",
+        "small": "github-copilot/gpt-5.3-codex"
+      }
+    },
+    "Code Reviewer": {
+      "description": "You are a Code Reviewer responsible for reviewing code contributions to Android applications. You will work under the guidance of the Lead Android Engineer, review code for quality and adherence to best practices, and provide feedback to developers. Your expertise in Android development and code review skills will be crucial in ensuring high-quality code that meets user needs and business goals.",
+      "mode": "subagent",
+      "models": {
+        "primary": "github-copilot/gpt-5.3-codex",
+        "small": "github-copilot/gpt-5.3-codex"
+      }
+    },
   },
+  
+  
   // Project rules injected into every agent's context
   "instructions": ["AGENTS.md"]
 }

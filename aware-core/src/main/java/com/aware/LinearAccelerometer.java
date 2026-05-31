@@ -104,7 +104,7 @@ public class LinearAccelerometer extends Aware_Sensor implements SensorEventList
                                 Intent newData = new Intent(ACTION_AWARE_LINEAR_ACCELEROMETER);
                                 sendBroadcast(newData);
                             }
-                        }).run();
+                        }).start();
                     }
                 } catch (SQLiteException e) {
                     if (Aware.DEBUG) Log.d(TAG, e.getMessage());
@@ -159,7 +159,7 @@ public class LinearAccelerometer extends Aware_Sensor implements SensorEventList
                         Intent newData = new Intent(ACTION_AWARE_LINEAR_ACCELEROMETER);
                         sendBroadcast(newData);
                     }
-                }).run();
+                }).start();
             }
         } catch (SQLiteException e) {
             if (Aware.DEBUG) Log.d(TAG, e.getMessage());

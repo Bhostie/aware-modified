@@ -52,6 +52,7 @@ import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Main AWARE framework service. awareContext will start and manage all the services and settings.
@@ -73,6 +74,11 @@ public class Aware extends Service {
      * Used to check if the core library is running or not inside individual plugins
      */
     public static boolean IS_CORE_RUNNING = false;
+
+    /**
+     * In-memory cache for settings to avoid repeated ContentResolver queries.
+     */
+    private static final ConcurrentHashMap<String, String> settingsCache = new ConcurrentHashMap<>();
 
     /**
      * Broadcasted event: awareContext device information is available
@@ -158,6 +164,16 @@ public class Aware extends Service {
      * Notification ID for AWARE service as foreground (to handle Doze, Android O battery optimizations)
      */
     public static final int AWARE_FOREGROUND_SERVICE = 220882;
+
+    /**
+     * Watchdog alarm interval (15 minutes) — survives process death via AlarmManager.
+     */
+    private static final long WATCHDOG_INTERVAL_MS = 15 * 60 * 1000L;
+
+    /**
+     * Request code for the watchdog PendingIntent.
+     */
+    private static final int WATCHDOG_REQUEST_CODE = 220883;
 
     /**
      * Used on the scheduler class to define global schedules for AWARE, SYNC and SPACE MAINTENANCE actions
@@ -700,7 +716,7 @@ public class Aware extends Service {
             SharedPreferences prefs = getSharedPreferences("com.aware.phone", Context.MODE_PRIVATE);
             if (prefs.getAll().isEmpty() && Aware.getSetting(getApplicationContext(), Aware_Preferences.DEVICE_ID).length() == 0) {
                 PreferenceManager.setDefaultValues(getApplicationContext(), "com.aware.phone", Context.MODE_PRIVATE, R.xml.aware_preferences, true);
-                prefs.edit().commit(); //commit changes
+                prefs.edit().apply(); //commit changes
             } else {
                 PreferenceManager.setDefaultValues(getApplicationContext(), "com.aware.phone", Context.MODE_PRIVATE, R.xml.aware_preferences, false);
             }
@@ -747,6 +763,9 @@ public class Aware extends Service {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+
+                // System-level AlarmManager watchdog — survives OEM process killing
+                scheduleWatchdogAlarm();
             }
 
             //Set compliance checks if on a study
@@ -780,13 +799,12 @@ public class Aware extends Service {
                 }
 
                 if (intent.getAction().equalsIgnoreCase(ACTION_AWARE_KEEP_ALIVE)) {
+                    if (DEBUG) Log.d(TAG, "AWARE watchdog fired — ensuring services are alive");
                     startAWARE(getApplicationContext());
                     startPlugins(getApplicationContext());
-                }
 
-                if (intent.getAction().equalsIgnoreCase(ACTION_AWARE_KEEP_ALIVE)) {
-                    startAWARE(getApplicationContext());
-                    startPlugins(getApplicationContext());
+                    // Reschedule the AlarmManager watchdog for the next interval
+                    scheduleWatchdogAlarm();
                 }
 
             } else {
@@ -1130,14 +1148,23 @@ public class Aware extends Service {
         if (context.getResources().getBoolean(R.bool.standalone))
             is_global = false;
 
+        String packageName = is_global ? "com.aware.phone" : context.getPackageName();
+        String cacheKey = key + "|" + packageName;
+
+        String cachedValue = settingsCache.get(cacheKey);
+        if (cachedValue != null) return cachedValue;
+
         String value = "";
         Cursor qry = context.getContentResolver().query(Aware_Settings.CONTENT_URI, null,
-                Aware_Settings.SETTING_KEY + " LIKE '" + key + "' AND " + Aware_Settings.SETTING_PACKAGE_NAME + " LIKE " + ((is_global) ? "'com.aware.phone'" : "'" + context.getPackageName() + "'"),
+                Aware_Settings.SETTING_KEY + " LIKE '" + key + "' AND " + Aware_Settings.SETTING_PACKAGE_NAME + " LIKE '" + packageName + "'",
                 null, null);
         if (qry != null && qry.moveToFirst()) {
             value = qry.getString(qry.getColumnIndex(Aware_Settings.SETTING_VALUE));
         }
         if (qry != null && !qry.isClosed()) qry.close();
+
+        if (value.length() > 0) settingsCache.put(cacheKey, value);
+
         return value;
     }
 
@@ -1153,6 +1180,11 @@ public class Aware extends Service {
         if (context.getResources().getBoolean(R.bool.standalone))
             package_name = context.getPackageName(); //use the package name from the context
 
+        String cacheKey = key + "|" + package_name;
+
+        String cachedValue = settingsCache.get(cacheKey);
+        if (cachedValue != null) return cachedValue;
+
         String value = "";
         Cursor qry = context.getContentResolver().query(Aware_Settings.CONTENT_URI, null,
                 Aware_Settings.SETTING_KEY + " LIKE '" + key + "' AND " + Aware_Settings.SETTING_PACKAGE_NAME + " LIKE '" + package_name + "'",
@@ -1161,6 +1193,9 @@ public class Aware extends Service {
             value = qry.getString(qry.getColumnIndex(Aware_Settings.SETTING_VALUE));
         }
         if (qry != null && !qry.isClosed()) qry.close();
+
+        if (value.length() > 0) settingsCache.put(cacheKey, value);
+
         return value;
     }
 
@@ -1259,6 +1294,7 @@ public class Aware extends Service {
             }
         }
         if (qry != null && !qry.isClosed()) qry.close();
+        settingsCache.clear();
     }
 
     /**
@@ -1326,6 +1362,14 @@ public class Aware extends Service {
             }
         }
         if (qry != null && !qry.isClosed()) qry.close();
+        settingsCache.clear();
+    }
+
+    /**
+     * Clear the settings cache. Call this when settings may have changed externally.
+     */
+    public static void clearSettingsCache() {
+        settingsCache.clear();
     }
 
     /**
@@ -1934,11 +1978,90 @@ public class Aware extends Service {
     }
 
 
+    /**
+     * Schedule a system-level AlarmManager watchdog that survives process death.
+     * On OEM devices (Xiaomi, Huawei, etc.) the internal Scheduler dies when the
+     * process is killed. This AlarmManager alarm is registered with the OS alarm
+     * service and will fire even if the app process is not running.
+     */
+    private void scheduleWatchdogAlarm() {
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) return;
+
+        Intent intent = new Intent(getApplicationContext(), Aware.class);
+        intent.setAction(ACTION_AWARE_KEEP_ALIVE);
+
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+
+        PendingIntent pendingIntent = PendingIntent.getService(
+                getApplicationContext(), WATCHDOG_REQUEST_CODE, intent, flags);
+
+        long triggerAt = SystemClock.elapsedRealtime() + WATCHDOG_INTERVAL_MS;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            // setExactAndAllowWhileIdle fires during Doze — critical for OEM survival
+            alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pendingIntent);
+        } else {
+            alarmManager.setExact(
+                    AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pendingIntent);
+        }
+
+        if (DEBUG) Log.d(TAG, "AWARE watchdog alarm scheduled (15 min)");
+    }
+
+    /**
+     * Cancel the watchdog alarm.
+     */
+    private void cancelWatchdogAlarm() {
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) return;
+
+        Intent intent = new Intent(getApplicationContext(), Aware.class);
+        intent.setAction(ACTION_AWARE_KEEP_ALIVE);
+
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+
+        PendingIntent pendingIntent = PendingIntent.getService(
+                getApplicationContext(), WATCHDOG_REQUEST_CODE, intent, flags);
+        alarmManager.cancel(pendingIntent);
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        super.onTaskRemoved(rootIntent);
+        if (DEBUG) Log.w(TAG, "AWARE service task removed — scheduling restart");
+
+        Intent restartIntent = new Intent(getApplicationContext(), Aware.class);
+        restartIntent.setPackage(getPackageName());
+
+        int flags = PendingIntent.FLAG_ONE_SHOT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+
+        PendingIntent pendingIntent = PendingIntent.getService(
+                getApplicationContext(), 1, restartIntent, flags);
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager != null) {
+            alarmManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    SystemClock.elapsedRealtime() + 1000, pendingIntent);
+        }
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
 
         IS_CORE_RUNNING = false;
+        cancelWatchdogAlarm();
 
         try {
             unregisterReceiver(aware_BR);
@@ -1968,7 +2091,7 @@ public class Aware extends Service {
         //Read default client settings
         SharedPreferences prefs = context.getApplicationContext().getSharedPreferences(context.getApplicationContext().getPackageName(), Context.MODE_PRIVATE);
         PreferenceManager.setDefaultValues(context.getApplicationContext(), context.getApplicationContext().getPackageName(), Context.MODE_PRIVATE, R.xml.aware_preferences, true);
-        prefs.edit().commit();
+        prefs.edit().apply();
 
         Map<String, ?> defaults = prefs.getAll();
         for (Map.Entry<String, ?> entry : defaults.entrySet()) {

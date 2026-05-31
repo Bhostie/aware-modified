@@ -132,7 +132,7 @@ public class Temperature extends Aware_Sensor implements SensorEventListener {
                         Intent accelData = new Intent(ACTION_AWARE_TEMPERATURE);
                         sendBroadcast(accelData);
                     }
-                }).run();
+                }).start();
             }
         } catch (SQLiteException e) {
             if (Aware.DEBUG) Log.d(TAG, e.getMessage());

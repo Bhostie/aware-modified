@@ -2,6 +2,7 @@
 package com.aware.phone;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -35,6 +36,7 @@ import com.aware.phone.ui.Aware_Join_Study;
 import com.aware.phone.ui.Aware_Participant;
 import com.aware.ui.PermissionsHandler;
 import com.aware.utils.Https;
+import com.aware.utils.OEMProtection;
 import com.aware.utils.SSLManager;
 
 import java.io.FileNotFoundException;
@@ -312,7 +314,7 @@ public class Aware_Client extends Aware_Activity implements SharedPreferences.On
 
             if (prefs.getAll().isEmpty() && Aware.getSetting(getApplicationContext(), Aware_Preferences.DEVICE_ID).length() == 0) {
                 PreferenceManager.setDefaultValues(getApplicationContext(), "com.aware.phone", Context.MODE_PRIVATE, com.aware.R.xml.aware_preferences, true);
-                prefs.edit().commit();
+                prefs.edit().apply();
             } else {
                 PreferenceManager.setDefaultValues(getApplicationContext(), "com.aware.phone", Context.MODE_PRIVATE, R.xml.aware_preferences, false);
             }
@@ -355,6 +357,37 @@ public class Aware_Client extends Aware_Activity implements SharedPreferences.On
 
             //Check if AWARE is allowed to run on Doze
             //Aware.isBatteryOptimizationIgnored(this, getPackageName());
+
+            // OEM-specific background protection guidance
+            final SharedPreferences oemPrefs = getSharedPreferences("oem_protection", Context.MODE_PRIVATE);
+            if (!oemPrefs.getBoolean(OEMProtection.getOEMDialogShownPrefKey(), false)
+                    && OEMProtection.isAggressiveOEM()) {
+                new AlertDialog.Builder(this)
+                        .setTitle("Background Protection Required")
+                        .setMessage("Your " + OEMProtection.getManufacturerName() + " device may stop AWARE from collecting data in the background.\n\n"
+                                + OEMProtection.getOEMInstructions())
+                        .setPositiveButton("Open Settings", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                OEMProtection.launchOEMSettings(getApplicationContext());
+                                oemPrefs.edit().putBoolean(OEMProtection.getOEMDialogShownPrefKey(), true).apply();
+                            }
+                        })
+                        .setNegativeButton("Later", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        })
+                        .setNeutralButton("Don't Show Again", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                oemPrefs.edit().putBoolean(OEMProtection.getOEMDialogShownPrefKey(), true).apply();
+                            }
+                        })
+                        .setCancelable(false)
+                        .show();
+            }
 
             prefs.registerOnSharedPreferenceChangeListener(this);
             

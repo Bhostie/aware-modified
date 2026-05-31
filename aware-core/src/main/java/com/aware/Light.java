@@ -134,7 +134,7 @@ public class Light extends Aware_Sensor implements SensorEventListener {
                         Intent newData = new Intent(ACTION_AWARE_LIGHT);
                         sendBroadcast(newData);
                     }
-                }).run();
+                }).start();
             }
         } catch (SQLiteException e) {
             if (Aware.DEBUG) Log.d(TAG, e.getMessage());

@@ -109,7 +109,7 @@ public class Gyroscope extends Aware_Sensor implements SensorEventListener {
                                 Intent newData = new Intent(ACTION_AWARE_GYROSCOPE);
                                 sendBroadcast(newData);
                             }
-                        }).run();
+                        }).start();
                     }
                 } catch (SQLiteException e) {
                     if (Aware.DEBUG) Log.d(TAG, e.getMessage());
@@ -164,7 +164,7 @@ public class Gyroscope extends Aware_Sensor implements SensorEventListener {
                         Intent newData = new Intent(ACTION_AWARE_GYROSCOPE);
                         sendBroadcast(newData);
                     }
-                }).run();
+                }).start();
             }
         } catch (SQLiteException e) {
             if (Aware.DEBUG) Log.d(TAG, e.getMessage());

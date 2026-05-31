@@ -108,7 +108,7 @@ public class Rotation extends Aware_Sensor implements SensorEventListener {
                                 Intent newData = new Intent(ACTION_AWARE_ROTATION);
                                 sendBroadcast(newData);
                             }
-                        }).run();
+                        }).start();
                     }
                 } catch (SQLiteException e) {
                     if (Aware.DEBUG) Log.d(TAG, e.getMessage());
@@ -165,7 +165,7 @@ public class Rotation extends Aware_Sensor implements SensorEventListener {
                         Intent newData = new Intent(ACTION_AWARE_ROTATION);
                         sendBroadcast(newData);
                     }
-                }).run();
+                }).start();
             }
         } catch (SQLiteException e) {
             if (Aware.DEBUG) Log.d(TAG, e.getMessage());
